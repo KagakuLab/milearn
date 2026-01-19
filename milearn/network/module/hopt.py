@@ -24,6 +24,7 @@ DEFAULT_PARAM_GRID = {
     # MIL specific
     "tau": [0.01, 0.5, 1.0],
     "instance_dropout": [0.0, 0.2, 0.4, 0.6, 0.8],
+    "pool": ["mean", "sum", "max", "lse"],
 
     # Architecture depth/shape
     "hidden_layer_sizes": [(2048, 1024, 512, 256, 128, 64), (256, 128, 64), (128,)],
