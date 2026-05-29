@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator
-
+from qsarcons.hopt import StepwiseHopt, DEFAULT_PARAM_GRID_REGRESSORS, DEFAULT_PARAM_GRID_CLASSIFIERS
+from sklearn.base import is_classifier, is_regressor
 
 def probs_to_class(probs):
     """Convert probability predictions to class labels.
@@ -79,20 +80,23 @@ class BagWrapper(BaseEstimator):
             raise RuntimeError("Unknown pooling strategy.")
         return bag_embed
 
-    def hopt(self, x, y, param_grid, n_jobs=1, verbose=True):
-        """Placeholder for hyperparameter optimization.
+    def hopt(self, x, y, param_grid, verbose=True):
+        """Stepwise hyperparameter optimization."""
 
-        Args:
-            x, y: training data and labels
-            param_grid: hyperparameter grid
-            n_jobs (int): number of parallel jobs
-            verbose (bool): verbosity
+        scoring = "roc_auc" if is_classifier(self.estimator) else "r2"
 
-        Returns:
-            None
-        """
-        if verbose:
-            print("Hyperparameter optimization is not implemented yet. Default parameters are used.")
+        est_name = self.estimator.__class__.__name__
+        param_grid = (
+            DEFAULT_PARAM_GRID_CLASSIFIERS.get(est_name)
+            if is_classifier(self.estimator)
+            else DEFAULT_PARAM_GRID_REGRESSORS.get(est_name)
+        )
+
+        x = self._pooling(x)
+        stepwise_hopt = StepwiseHopt(self.estimator, param_grid, scoring=scoring, verbose=verbose)
+        stepwise_hopt.fit(x, y)
+        self.estimator = stepwise_hopt.estimator
+
         return None
 
     def fit(self, bags, labels):
@@ -205,9 +209,25 @@ class InstanceWrapper(BaseEstimator):
             raise ValueError(f"Pooling strategy '{self.pool}' is not recognized.")
         return bag_pred
 
-    def hopt(self, x, y, param_grid, n_jobs=1, verbose=True):
-        if verbose:
-            print("Hyperparameter optimization is not implemented yet. Default parameters are used.")
+    def hopt(self, x, y, param_grid,  verbose=True):
+        """Stepwise hyperparameter optimization."""
+
+        scoring = "roc_auc" if is_classifier(self.estimator) else "r2"
+
+        est_name = self.estimator.__class__.__name__
+        param_grid = (
+            DEFAULT_PARAM_GRID_CLASSIFIERS.get(est_name)
+            if is_classifier(self.estimator)
+            else DEFAULT_PARAM_GRID_REGRESSORS.get(est_name)
+        )
+
+        x_transformed = np.vstack(np.asarray(x, dtype=object)).astype(np.float32)
+        y_transformed = np.hstack([np.full(len(bag), lb) for bag, lb in zip(x, y)])
+
+        stepwise_hopt = StepwiseHopt(self.estimator, param_grid, scoring=scoring, verbose=verbose)
+        stepwise_hopt.fit(x_transformed, y_transformed)
+        self.estimator = stepwise_hopt.estimator
+
         return None
 
     def fit(self, bags, labels):

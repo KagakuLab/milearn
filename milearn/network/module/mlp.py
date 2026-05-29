@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset, random_split
 
 from milearn.network.module.base import BaseNetwork
-from milearn.network.module.hopt import StepwiseHopt
+from milearn.network.module.hopt import StepwiseHopt, DEFAULT_PARAM_GRID
 from milearn.network.module.utils import silence_and_seed_lightning
 from numpy import ndarray
 from typing import Any
@@ -199,20 +199,26 @@ class BagWrapperMLPNetwork(MLPNetwork, StepwiseHopt):
         self.pool = pool
         self.save_hyperparameters()
 
+    def hopt(self, x, y, param_grid=DEFAULT_PARAM_GRID, verbose=True):
+        """Hyperparameter optimization with support for pooling methods."""
+        valid_pools = ["mean", "sum", "max", "lse"]
+        if param_grid.get("pool"):
+            param_grid["pool"] = [i for i in param_grid["pool"] if i in valid_pools]
+        return super().hopt(x, y, param_grid, verbose=verbose)
+
     def fit(self, X: List[ndarray], Y: Union[List[float], List[int]]):
-        """Fit the model after pooling bag representations.
+        """Fit the model after pooling bag representations."""
 
-        Args:
-            X (list | np.ndarray): input bags.
-            Y (list | np.ndarray): labels.
-
-        Returns:
-            BagWrapperMLPNetwork: trained model instance.
-        """
         if self.pool == "mean":
             X = np.asarray([np.mean(bag, axis=0) for bag in X])
+        elif self.pool == "sum":
+            X = np.asarray([np.sum(bag, axis=0) for bag in X])
+        elif self.pool == "max":
+            X = np.asarray([np.max(bag, axis=0) for bag in X])
+        elif self.pool == "lse":
+            X = np.asarray([np.log(np.sum(np.exp(bag), axis=0)) for bag in X])
         else:
-            raise RuntimeError("Unknown pooling strategy.")
+            raise RuntimeError(f"Unknown pooling strategy: {self.pool}")
         return super().fit(X, Y)
 
     def predict(self, X: List[ndarray]) -> ndarray:
@@ -247,6 +253,13 @@ class InstanceWrapperMLPNetwork(MLPNetwork, StepwiseHopt):
         self.save_hyperparameters()
         if self.pool != "mean":
             raise ValueError(f"Pooling strategy '{self.pool}' is not recognized.")
+
+    def hopt(self, x, y, param_grid=DEFAULT_PARAM_GRID, verbose=True):
+        """Hyperparameter optimization with support for pooling methods."""
+        valid_pools = ["mean"]
+        if param_grid.get("pool"):
+            param_grid["pool"] = [i for i in param_grid["pool"] if i in valid_pools]
+        return super().hopt(x, y, param_grid, verbose=verbose)
 
     def fit(self, X: List[ndarray], Y: Union[List[float], List[int]]):
         """Fit model after converting bags to single-instance dataset.

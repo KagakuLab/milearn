@@ -17,7 +17,8 @@ dependencies = [
     "matplotlib",
     "torch",
     "torchvision",
-    "lightning"
+    "lightning",
+    "qsarcons"
 ]
 
 [tool.setuptools.packages.find]
