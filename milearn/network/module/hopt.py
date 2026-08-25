@@ -17,7 +17,7 @@ DEFAULT_PARAM_GRID = {
     "activation": ["relu", "leakyrelu", "gelu", "elu", "silu"],
 
     # Learning dynamics
-    "learning_rate": [10e-5, 10e-4],
+    "learning_rate": [1e-4, 1e-3],
     "batch_size": [32, 512, 1024],
     "weight_decay": [0.0, 1e-5, 1e-4, 1e-3, 1e-2],
 
@@ -81,6 +81,14 @@ class StepwiseHopt:
     def hopt(self, x, y, param_grid=None, verbose=True):
         """Perform stepwise hyperparameter optimization.
 
+        Candidates for each hyperparameter are evaluated in parallel threads
+        when training on CPU. On GPU, they're evaluated sequentially instead:
+        multiple threads driving separate PyTorch Lightning trainers against
+        the same GPU concurrently corrupts the shared CUDA context (observed
+        as "CUDA error: an illegal memory access was encountered" during a
+        trainer's teardown/`torch.cuda.empty_cache()`, typically when another
+        thread's kernels are still in flight on the same device).
+
         Args:
             x (list | np.ndarray): input data.
             y (list | np.ndarray): target labels.
@@ -95,6 +103,9 @@ class StepwiseHopt:
 
         valid_args = set(self.hparams.keys())
         filtered_grid = {k: v for k, v in param_grid.items() if k in valid_args}
+
+        accelerator = filtered_grid.get("accelerator", self.hparams.get("accelerator", "cpu"))
+        use_threads = str(accelerator).lower() == "cpu"
 
         total_steps = sum(len(v) for v in filtered_grid.values() if isinstance(v, (list, tuple)))
         current_step = 0
@@ -112,11 +123,14 @@ class StepwiseHopt:
             if verbose:
                 print(f"Optimizing hyperparameter: {param} ({len(options)} options)")
 
-            n_jobs = len(options)
+            n_jobs = len(options) if use_threads else 1
             args_list = [(self.__class__, self.hparams, best_params, param, val, x, y, n_jobs) for val in options]
 
-            with ThreadPoolExecutor(max_workers=n_jobs) as executor:
-                results = list(executor.map(lambda args: self._evaluate_model(*args), args_list))
+            if use_threads:
+                with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+                    results = list(executor.map(lambda args: self._evaluate_model(*args), args_list))
+            else:
+                results = [self._evaluate_model(*args) for args in args_list]
 
             for val, loss, epochs, model_time in results:
                 current_step += 1
