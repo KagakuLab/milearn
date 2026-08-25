@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mikit-learn"
-version = "1.0.2"
+version = "1.0.3"
 description = "Multi-instance machine learning in Python"
 readme = { file = "README.rst", content-type = "text/x-rst" }
 license = { text = "MIT" }
