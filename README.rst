@@ -59,6 +59,9 @@ for the MNIST dataset can be found in `tutorial collection <notebooks>`_ .
 Paper
 ------------------------
 
+**Warning**: currently, notebooks for reproducing paper results are migrating between ``milearn`` and ``QSARmil``,
+so some may be unavailable for some time.
+
 Application cases demonstrated in the paper can be found in:
 
 - `MNIST classification <https://github.com/KagakuLab/milearn/blob/main/notebooks/Tutorial_2_KID_for_mnist_classification.ipynb>`_
@@ -66,3 +69,19 @@ Application cases demonstrated in the paper can be found in:
 - `Molecular conformers <https://github.com/KagakuLab/QSARmil/blob/main/notebooks/03_Key_Instance_Detection.ipynb>`_
 - `Molecular fragments <https://github.com/KagakuLab/QSARmil/blob/main/notebooks/Tutorial_3_KID_for_fragments.ipynb>`_
 - `Protein-protein interaction <https://github.com/KagakuLab/SEQmil/blob/main/notebooks/Tutorial_1_KID_for_protein_protein_interaction.ipynb>`_
+
+Citation
+------------------------
+
+For ``milearn`` citation use:
+
+.. code-block:: bibtex
+
+    @article{zankov2025milearn,
+      title={milearn: A Python Package for Multi-Instance Machine Learning},
+      author={Zankov, Dmitry and Polishchuk, Pavlo and Sobieraj, Michal and Barbatti, Mario},
+      journal={arXiv preprint arXiv:2512.01287},
+      year={2025}
+    }
+
+
