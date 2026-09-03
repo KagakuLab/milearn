@@ -9,16 +9,7 @@ from typing import List
 
 
 def load_mnist(flatten: bool = True) -> Tuple[ndarray, ndarray]:
-    """
-    Load MNIST dataset as NumPy arrays.
-
-    Args:
-        flatten (bool): If True, flatten each 28x28 image into a 784-length vector.
-
-    Returns:
-        data (np.ndarray): array of images, shape [n_samples, 28, 28] or [n_samples, 784]
-        targets (np.ndarray): array of digit labels, shape [n_samples]
-    """
+    """Download MNIST and return images (optionally flattened) alongside their digit labels."""
     transform = transforms.Compose([transforms.ToTensor()])
     mnist = datasets.MNIST(root="./data", train=True, download=True, transform=transform)
     data = mnist.data.numpy()
@@ -30,23 +21,7 @@ def load_mnist(flatten: bool = True) -> Tuple[ndarray, ndarray]:
 
 
 def create_bags_or(data: ndarray, targets: ndarray, bag_size: int = 10, num_bags: int = 1000, key_digit: int = 3, key_instances_per_bag: int = 1, random_state: int = 42) -> Tuple[List[ndarray], List[int], List[List[int]]]:
-    """
-    Create bags for MIL using OR logic: bag is positive if it contains at least one key digit.
-
-    Args:
-        data (np.ndarray): instance features, shape [n_samples, n_features]
-        targets (np.ndarray): instance labels, shape [n_samples]
-        bag_size (int): number of instances per bag
-        num_bags (int): total number of bags to create
-        key_digit (int): digit considered as key
-        key_instances_per_bag (int): number of key instances per positive bag
-        random_state (int): random seed
-
-    Returns:
-        bags (list of np.ndarray): list of bags, each shape [bag_size, n_features]
-        bag_labels (list): 0/1 labels for each bag
-        key_indices_per_bag (list of list): positions of key instances in each bag
-    """
+    """Build bags labeled positive if they contain at least one instance of the key digit."""
     rng = np.random.RandomState(random_state)
     key_indices_all = np.where(targets == key_digit)[0]
     non_key_indices_all = np.where(targets != key_digit)[0]
@@ -77,22 +52,7 @@ def create_bags_or(data: ndarray, targets: ndarray, bag_size: int = 10, num_bags
 
 
 def create_bags_and(data, targets, bag_size=10, num_bags=1000, key_digits=(3, 7), random_state=42):
-    """
-    Create bags for MIL using AND logic: bag is positive if it contains both key digits.
-
-    Args:
-        data (np.ndarray): instance features
-        targets (np.ndarray): instance labels
-        bag_size (int): number of instances per bag
-        num_bags (int): total number of bags
-        key_digits (tuple): pair of digits considered as key
-        random_state (int): random seed
-
-    Returns:
-        bags (list of np.ndarray): list of bags
-        bag_labels (list): 0/1 labels for each bag
-        key_indices_per_bag (list of list): positions of key instances in each bag
-    """
+    """Build bags labeled positive only if they contain both key digits."""
     rng = np.random.RandomState(random_state)
     idx_key1 = np.where(targets == key_digits[0])[0]
     idx_key2 = np.where(targets == key_digits[1])[0]
@@ -129,22 +89,7 @@ def create_bags_and(data, targets, bag_size=10, num_bags=1000, key_digits=(3, 7)
 
 
 def create_bags_xor(data, targets, bag_size=10, num_bags=1000, key_digits=(3, 7), random_state=42):
-    """
-    Create bags for MIL using XOR logic: bag is positive if it contains exactly one of the key digits.
-
-    Args:
-        data (np.ndarray): instance features
-        targets (np.ndarray): instance labels
-        bag_size (int): number of instances per bag
-        num_bags (int): total number of bags
-        key_digits (tuple): pair of digits considered as key
-        random_state (int): random seed
-
-    Returns:
-        bags (list of np.ndarray): list of bags
-        bag_labels (list): 0/1 labels
-        key_indices_per_bag (list of list): positions of key instances in each bag
-    """
+    """Build bags labeled positive if they contain exactly one of the two key digits."""
     rng = np.random.RandomState(random_state)
     idx_key1 = np.where(targets == key_digits[0])[0]
     idx_key2 = np.where(targets == key_digits[1])[0]
@@ -182,22 +127,7 @@ def create_bags_xor(data, targets, bag_size=10, num_bags=1000, key_digits=(3, 7)
 
 
 def create_bags_reg(data: ndarray, targets: ndarray, bag_size: int = 5, num_bags: int = 1000, bag_agg: str = "mean", random_state: int = 42) -> Tuple[List[ndarray], List[float], List[List[int]]]:
-    """
-    Create regression-style bags: bag label is aggregated from instance labels.
-
-    Args:
-        data (np.ndarray): instance features
-        targets (np.ndarray): instance labels (numeric)
-        bag_size (int): instances per bag
-        num_bags (int): number of bags
-        bag_agg (str): aggregation method for labels ('mean' or 'sum')
-        random_state (int): random seed
-
-    Returns:
-        bags (list of np.ndarray): list of bags
-        labels (list): aggregated bag labels
-        instance_digits (list of list): original instance labels per bag
-    """
+    """Build regression bags whose label is the mean or sum of their instances' target values."""
     if bag_agg == "mean":
         agg_func = np.mean
     elif bag_agg == "sum":
@@ -222,13 +152,7 @@ def create_bags_reg(data: ndarray, targets: ndarray, bag_size: int = 5, num_bags
 
 
 def show_digit(vector, title=None):
-    """
-    Display a single MNIST digit vector as a 28x28 image.
-
-    Args:
-        vector (np.ndarray): flattened digit of length 784
-        title (str): optional figure title
-    """
+    """Display a flattened 28x28 MNIST digit as an image, with an optional title."""
     if vector.shape[0] != 784:
         raise ValueError("Expected a vector of length 784.")
 
@@ -241,17 +165,7 @@ def show_digit(vector, title=None):
 
 
 def visualize_bag_with_weights(bag, weights, digits=None, title=None, cmap='gray', sort=False):
-    """
-    Visualize instances in a bag with attention weights.
-
-    Args:
-        bag (list or np.ndarray): images, each flattened or [28,28]
-        weights (list or np.ndarray): attention weights for each instance
-        digits (list): optional labels of instances (used for sorting)
-        title (str): optional figure title
-        cmap (str): colormap for images
-        sort (bool): sort images by digits if provided
-    """
+    """Display every image in a bag as a grid, annotated with its attention weight."""
     bag = np.array(bag)
     weights = np.array(weights)
 

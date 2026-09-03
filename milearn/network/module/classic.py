@@ -6,29 +6,15 @@ from typing import Tuple
 
 
 class BagNetwork(BaseNetwork, StepwiseHopt):
-    """A neural network model for multiple-instance learning (MIL) that
-    aggregates instance embeddings into bag-level representations."""
+    """MIL network that pools instance embeddings into a bag embedding before scoring."""
 
     def __init__(self, pool: str = "mean", **kwargs: Any) -> None:
-        """Initialize BagNetwork.
-
-        Args:
-            pool (str): pooling method, one of ['mean', 'sum', 'max', 'lse'].
-            **kwargs: additional arguments for BaseNetwork.
-        """
+        """Store the pooling strategy and forward remaining arguments to BaseNetwork."""
         super().__init__(**kwargs)
         self.pool = pool
 
     def _pooling(self, bags: Tensor, inst_mask: Tensor) -> Tensor:
-        """Apply pooling over instance embeddings to create bag embeddings.
-
-        Args:
-            bags (torch.Tensor): instance embeddings.
-            inst_mask (torch.Tensor): mask for valid instances.
-
-        Returns:
-            torch.Tensor: bag-level embeddings.
-        """
+        """Aggregate instance embeddings into a bag embedding using the configured pooling."""
         if self.pool == "mean":
             bag_embed = bags.sum(axis=1) / inst_mask.sum(axis=1)
         elif self.pool == "sum":
@@ -44,15 +30,7 @@ class BagNetwork(BaseNetwork, StepwiseHopt):
         return bag_embed
 
     def forward(self, bags: Tensor, inst_mask: Tensor) -> Tuple[Tensor, None, Tensor]:
-        """Forward pass of BagNetwork.
-
-        Args:
-            bags (torch.Tensor): input bags of instances.
-            inst_mask (torch.Tensor): instance mask.
-
-        Returns:
-            tuple: (bag embeddings, None, bag predictions).
-        """
+        """Transform, pool, and score a batch of bags."""
         inst_embed = self.instance_transformer(bags)
         inst_mask = instance_dropout(inst_mask, self.hparams.instance_dropout, self.training)
         inst_embed = inst_mask * inst_embed
@@ -62,18 +40,11 @@ class BagNetwork(BaseNetwork, StepwiseHopt):
 
         return bag_embed, None, bag_pred
 
-    def hopt(self, x, y, param_grid=DEFAULT_PARAM_GRID, verbose=False):
-        """Hyperparameter optimization with support for pooling methods.
-
-        Args:
-            x (list): input bags.
-            y (list): labels.
-            param_grid (dict): grid of hyperparameters.
-            verbose (bool): verbosity flag.
-
-        Returns:
-            object: optimization results from StepwiseHopt.
-        """
+    def hopt(self, x, y, param_grid=None, verbose=False):
+        """Run stepwise hyperparameter optimization, restricting the grid to pooling methods this class supports."""
+        if param_grid is None:
+            param_grid = DEFAULT_PARAM_GRID
+        param_grid = dict(param_grid)
         valid_pools = ["mean", "sum", "max", "lse"]
         if param_grid.get("pool"):
             param_grid["pool"] = [i for i in param_grid["pool"] if i in valid_pools]
@@ -81,29 +52,15 @@ class BagNetwork(BaseNetwork, StepwiseHopt):
 
 
 class InstanceNetwork(BaseNetwork):
-    """A neural network model for multiple-instance learning (MIL) that
-    aggregates predictions at the instance level."""
+    """MIL network that scores each instance individually, then pools the predictions into a bag prediction."""
 
     def __init__(self, pool: str = "mean", **kwargs: Any) -> None:
-        """Initialize InstanceNetwork.
-
-        Args:
-            pool (str): pooling method, one of ['mean', 'sum', 'max'].
-            **kwargs: additional arguments for BaseNetwork.
-        """
+        """Store the pooling strategy and forward remaining arguments to BaseNetwork."""
         super().__init__(**kwargs)
         self.pool = pool
 
     def _pooling(self, inst_pred: Tensor, inst_mask: Tensor) -> Tensor:
-        """Apply pooling over instance predictions to create bag predictions.
-
-        Args:
-            inst_pred (torch.Tensor): predictions for instances.
-            inst_mask (torch.Tensor): mask for valid instances.
-
-        Returns:
-            torch.Tensor: bag-level predictions.
-        """
+        """Aggregate instance-level predictions into a bag-level prediction using the configured pooling."""
         if self.pool == "mean":
             bag_pred = inst_pred.sum(axis=1) / inst_mask.sum(axis=1)
         elif self.pool == "sum":
@@ -112,21 +69,12 @@ class InstanceNetwork(BaseNetwork):
             idx = inst_pred.abs().argmax(dim=1, keepdim=True)
             bag_pred = inst_pred.gather(1, idx).squeeze(1)
         else:
-            TypeError(f"Pooling type {self.pool} is not supported.")
-            return None
+            raise TypeError(f"Pooling type {self.pool} is not supported.")
         bag_pred = bag_pred.unsqueeze(1)
         return bag_pred
 
     def forward(self, bags: Tensor, inst_mask: Tensor) -> Tuple[None, None, Tensor]:
-        """Forward pass of InstanceNetwork.
-
-        Args:
-            bags (torch.Tensor): input bags of instances.
-            inst_mask (torch.Tensor): instance mask.
-
-        Returns:
-            tuple: (None, None, bag predictions).
-        """
+        """Transform each instance, score it, then pool scores into a bag prediction."""
         inst_embed = self.instance_transformer(bags)
         inst_mask = instance_dropout(inst_mask, self.hparams.instance_dropout, self.training)
         inst_embed = inst_mask * inst_embed
@@ -136,18 +84,11 @@ class InstanceNetwork(BaseNetwork):
 
         return None, None, bag_pred
 
-    def hopt(self, x, y, param_grid=DEFAULT_PARAM_GRID, verbose=True):
-        """Hyperparameter optimization with support for pooling methods.
-
-        Args:
-            x (list): input bags.
-            y (list): labels.
-            param_grid (dict): grid of hyperparameters.
-            verbose (bool): verbosity flag.
-
-        Returns:
-            object: optimization results from StepwiseHopt.
-        """
+    def hopt(self, x, y, param_grid=None, verbose=True):
+        """Run stepwise hyperparameter optimization, restricting the grid to pooling methods this class supports."""
+        if param_grid is None:
+            param_grid = DEFAULT_PARAM_GRID
+        param_grid = dict(param_grid)
         valid_pools = ["mean", "sum", "max"]
         if param_grid.get("pool"):
             param_grid["pool"] = [i for i in param_grid["pool"] if i in valid_pools]

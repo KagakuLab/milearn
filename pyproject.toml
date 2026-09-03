@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mikit-learn"
-version = "1.0.4"
+version = "1.0.5"
 description = "Multi-instance machine learning in Python"
 readme = { file = "README.rst", content-type = "text/x-rst" }
 license = { text = "MIT" }
@@ -14,13 +14,15 @@ authors = [
 ]
 
 dependencies = [
-    "scikit-learn==1.9.0",
-    "pandas==3.0.5",
-    "matplotlib==3.11.1",
-    "torch==2.6.0",
-    "torchvision==0.21.0",
-    "lightning==2.6.5",
+    "pandas",
+    "scikit-learn",
+    "matplotlib",
+    "torch",
+    "lightning",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [tool.setuptools.packages.find]
 where = ["."]

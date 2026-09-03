@@ -32,14 +32,7 @@ DEFAULT_PARAM_GRID = {
 }
 
 def get_optimal_torch_threads(n_jobs: int) -> int:
-    """Get optimal number of torch threads for parallel jobs.
-
-    Args:
-        n_jobs (int): number of parallel jobs.
-
-    Returns:
-        int: number of threads to allocate per job.
-    """
+    """Divide the available CPU count evenly across the requested number of parallel jobs."""
     total_cpus = os.cpu_count() or 1
     return max(1, total_cpus // n_jobs)
 
@@ -48,21 +41,7 @@ class StepwiseHopt:
     """Stepwise hyperparameter optimization."""
 
     def _evaluate_model(self, cls, hparams, best_params, param, val, x, y, n_jobs):
-        """Train and evaluate a model for a given hyperparameter setting.
-
-        Args:
-            cls (type): model class.
-            hparams (dict): base hyperparameters.
-            best_params (dict): best parameters found so far.
-            param (str): name of the parameter being optimized.
-            val (Any): value of the parameter being tested.
-            x (list | np.ndarray): input data.
-            y (list | np.ndarray): target labels.
-            n_jobs (int): number of parallel jobs.
-
-        Returns:
-            tuple: (val, loss, epochs_trained, elapsed_model_time).
-        """
+        """Train one candidate model and return its value, validation loss, epochs trained, and elapsed time."""
         torch.set_num_threads(get_optimal_torch_threads(n_jobs))
         valid_args = set(hparams.keys())
         tmp_params = {**hparams, **best_params, param: val}
@@ -79,25 +58,7 @@ class StepwiseHopt:
         return val, loss, epochs_trained, elapsed_model_time
 
     def hopt(self, x, y, param_grid=None, verbose=True):
-        """Perform stepwise hyperparameter optimization.
-
-        Candidates for each hyperparameter are evaluated in parallel threads
-        when training on CPU. On GPU, they're evaluated sequentially instead:
-        multiple threads driving separate PyTorch Lightning trainers against
-        the same GPU concurrently corrupts the shared CUDA context (observed
-        as "CUDA error: an illegal memory access was encountered" during a
-        trainer's teardown/`torch.cuda.empty_cache()`, typically when another
-        thread's kernels are still in flight on the same device).
-
-        Args:
-            x (list | np.ndarray): input data.
-            y (list | np.ndarray): target labels.
-            param_grid (dict | None): parameter grid to search.
-            verbose (bool): whether to print progress.
-
-        Returns:
-            dict: best hyperparameters found.
-        """
+        """Optimize hyperparameters one at a time, evaluating candidates in parallel threads on CPU."""
         if param_grid is None:
             param_grid = DEFAULT_PARAM_GRID
 

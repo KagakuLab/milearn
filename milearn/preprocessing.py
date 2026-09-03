@@ -7,62 +7,24 @@ from typing import List
 from typing import Optional
 
 class BagScaler(BaseEstimator, TransformerMixin):
-    """
-    Wrapper to apply scikit-learn scalers to bags of instances.
-
-    Each bag is a 2D array of shape [n_instances, n_features]. The scaler is
-    fitted on all instances from all bags and then applied individually to each bag.
-    """
+    """Wraps a scikit-learn scaler, fitting it on all instances across bags and applying it per bag."""
     def __init__(self, scaler: MinMaxScaler = None) -> None:
-        """
-        Initialize BagScaler.
-
-        Args:
-            scaler: scikit-learn scaler instance (e.g., MinMaxScaler, StandardScaler).
-                    Defaults to MinMaxScaler() if None.
-        """
+        """Store the underlying scaler, defaulting to MinMaxScaler() if none is given."""
         self.scaler = scaler if scaler is not None else MinMaxScaler()
 
-    def fit(self, x: List[ndarray], y: Optional[Any] = None) -> "BagMinMaxScaler":
-        """
-        Fit the scaler using all instances from all bags.
-
-        Args:
-            x (list of np.ndarray): list of bags, each bag is [n_instances, n_features].
-            y: optional target values (passed to scaler if needed).
-
-        Returns:
-            self
-        """
+    def fit(self, x: List[ndarray], y: Optional[Any] = None) -> "BagScaler":
+        """Fit the scaler on all instances pooled from every bag."""
         all_instances = np.vstack(x)  # stack all bags for fitting
         self.scaler.fit(all_instances, y)
         return self
 
     def transform(self, x):
-        """
-        Transform each bag using the fitted scaler.
-
-        Args:
-            x (list of np.ndarray): list of bags to transform.
-
-        Returns:
-            list of np.ndarray: scaled bags
-        """
+        """Apply the fitted scaler to each bag independently."""
         x_scaled = [self.scaler.transform(bag) for bag in x]
         return x_scaled
 
     def fit_transform(self, X, y=None, **fit_params):
-        """
-        Fit the scaler and transform the bags in a single step.
-
-        Args:
-            X (list of np.ndarray): list of bags to fit and transform.
-            y: optional target values.
-            **fit_params: additional fit parameters.
-
-        Returns:
-            list of np.ndarray: scaled bags
-        """
+        """Fit the scaler and transform the bags in a single step."""
         return self.fit(X, y).transform(X)
 
 

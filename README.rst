@@ -61,9 +61,8 @@ Paper
 
 Application cases demonstrated in the paper can be found in:
 
-- `MNIST classification <https://github.com/KagakuAI/milearn/blob/main/notebooks/Tutorial_2_KID_for_mnist_classification.ipynb>`_
-- `MNIST regression <https://github.com/KagakuAI/milearn/blob/main/notebooks/Tutorial_3_KID_for_mnist_regression.ipynb>`_
-- `Molecular conformers <https://github.com/KagakuAI/QSARmil/blob/main/notebooks/Tutorial_2_KID_for_conformers.ipynb>`_
-- `Molecular fragments <https://github.com/KagakuAI/QSARmil/blob/main/notebooks/Tutorial_3_KID_for_fragments.ipynb>`_
-- `Protein protein interaction <https://github.com/KagakuAI/SEQmil/blob/main/notebooks/Tutorial_1_KID_for_protein_protein_interaction.ipynb>`_
-- `Consensus MIL <https://github.com/KagakuAI/milearn/blob/main/notebooks/Tutorial_5_MIL_for_ACE.ipynb>`_
+- `MNIST classification <https://github.com/KagakuLab/milearn/blob/main/notebooks/Tutorial_2_KID_for_mnist_classification.ipynb>`_
+- `MNIST regression <https://github.com/KagakuLab/milearn/blob/main/notebooks/Tutorial_3_KID_for_mnist_regression.ipynb>`_
+- `Molecular conformers <https://github.com/KagakuLab/QSARmil/blob/main/notebooks/03_Key_Instance_Detection.ipynb>`_
+- `Molecular fragments <https://github.com/KagakuLab/QSARmil/blob/main/notebooks/Tutorial_3_KID_for_fragments.ipynb>`_
+- `Protein-protein interaction <https://github.com/KagakuLab/SEQmil/blob/main/notebooks/Tutorial_1_KID_for_protein_protein_interaction.ipynb>`_

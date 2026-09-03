@@ -6,17 +6,7 @@ from pytorch_lightning import seed_everything
 
 
 def silence_and_seed_lightning(seed: int = 42, level: int = logging.ERROR) -> None:
-    """Silence PyTorch Lightning logs and set random seeds for reproducibility.
-
-    This function:
-      1. Reduces verbosity of Lightning loggers.
-      2. Silences `rank_zero` logging helpers to avoid clutter in distributed training.
-      3. Seeds all relevant random number generators including worker threads.
-
-    Args:
-        seed (int): Random seed to set for reproducibility.
-        level (int): Logging level for silenced loggers (default: logging.ERROR).
-    """
+    """Silence PyTorch Lightning's loggers and rank-zero helpers, then seed all random number generators."""
     # 1. Silence standard loggers
     modules = [
         "lightning.pytorch",  # global lightning logs
@@ -39,20 +29,10 @@ def silence_and_seed_lightning(seed: int = 42, level: int = logging.ERROR) -> No
 
 
 class TrainLogging(pl.Callback):
-    """PyTorch Lightning callback to log training and validation loss per
-    epoch.
-
-    Prints a formatted message at the end of each training epoch:
-        Epoch <current>/<max> | train_loss=<value> | val_loss=<value>
-    """
+    """PyTorch Lightning callback that prints train/val loss at the end of each training epoch."""
 
     def on_train_epoch_end(self, trainer, pl_module):
-        """Called at the end of each training epoch to log losses.
-
-        Args:
-            trainer (pl.Trainer): the current PyTorch Lightning trainer.
-            pl_module (pl.LightningModule): the model being trained.
-        """
+        """Print the current epoch number and its train/validation loss."""
         metrics = trainer.callback_metrics
         train_loss = metrics.get("train_loss", 0.0)
         val_loss = metrics.get("val_loss", 0.0)
