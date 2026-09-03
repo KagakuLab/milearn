@@ -95,7 +95,7 @@ class DynamicPooling(nn.Module):
             tuple: (bag embeddings, instance weights).
         """
         inst_embed = inst_mask * inst_embed
-        inst_logits = torch.zeros(*inst_embed.shape[:2], 1)
+        inst_logits = torch.zeros(*inst_embed.shape[:2], 1, device=inst_embed.device, dtype=inst_embed.dtype)
 
         for t in range(self.n_iter):
             inst_weights = torch.softmax(inst_mask * inst_logits, dim=1)
